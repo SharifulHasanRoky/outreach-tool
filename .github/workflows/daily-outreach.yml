@@ -1,0 +1,125 @@
+name: Daily AI Outreach Pipeline
+
+on:
+  schedule:
+    # Runs every day at 9:00 AM UTC
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Search query (e.g., dentist, restaurant, gym)"
+        required: false
+        default: "small business"
+      location:
+        description: "Location (e.g., New York, Chicago)"
+        required: false
+        default: "local"
+
+jobs:
+  find-leads:
+    name: Find New Leads
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+      - name: Find leads
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+        run: node scripts/find-leads.js "${{ inputs.query || 'small business' }}" "${{ inputs.location || 'local' }}"
+      - name: Upload leads data
+        uses: actions/upload-artifact@v4
+        with:
+          name: leads-data
+          path: data/
+
+  audit-websites:
+    name: Audit Websites
+    runs-on: ubuntu-latest
+    needs: find-leads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+      - name: Download leads data
+        uses: actions/download-artifact@v4
+        with:
+          name: leads-data
+          path: data/
+      - name: Audit websites
+        env:
+          PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: node scripts/audit-websites.js
+      - name: Upload updated data
+        uses: actions/upload-artifact@v4
+        with:
+          name: audited-data
+          path: data/
+          overwrite: true
+
+  send-outreach:
+    name: Send Outreach
+    runs-on: ubuntu-latest
+    needs: audit-websites
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - name: Download audited data
+        uses: actions/download-artifact@v4
+        with:
+          name: audited-data
+          path: data/
+      - name: Send outreach
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: node scripts/send-outreach.js
+      - name: Upload final data
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-data
+          path: data/
+          overwrite: true
+
+  follow-up:
+    name: Send Follow-ups
+    runs-on: ubuntu-latest
+    needs: send-outreach
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - name: Download data
+        uses: actions/download-artifact@v4
+        with:
+          name: final-data
+          path: data/
+      - name: Process follow-ups
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: node scripts/follow-up.js
+      - name: Commit data changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "AI Outreach Bot"
+          git add data/
+          git diff --staged --quiet || git commit -m "chore: update lead data [$(date +%Y-%m-%d)]"
+          git push
