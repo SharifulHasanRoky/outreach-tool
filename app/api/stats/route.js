@@ -1,26 +1,16 @@
 import { NextResponse } from "next/server";
-import path from "path";
-import fs from "fs";
 
-function readJSON(filePath) {
-  const fullPath = path.resolve(filePath);
-  if (!fs.existsSync(fullPath)) return [];
-  return JSON.parse(fs.readFileSync(fullPath, "utf8") || "[]");
-}
-
+// Stats are now computed client-side via localStorage
+// This route is kept for backward compatibility with scripts
 export async function GET() {
-  const leads = readJSON("./data/leads.json");
-  const log = readJSON("./data/outreach-log.json");
-
-  const stats = {
-    totalLeads: leads.length,
-    outreachSent: log.length,
-    replies: leads.filter((l) => l.status === "replied").length,
-    interested: leads.filter((l) => l.status === "interested").length,
-    meetingsBooked: leads.filter((l) => l.status === "meeting_booked").length,
-    closed: leads.filter((l) => l.status === "closed").length,
-    pending: leads.filter((l) => l.status === "outreach_sent").length,
-  };
-
-  return NextResponse.json(stats);
+  return NextResponse.json({
+    totalLeads: 0,
+    outreachSent: 0,
+    replies: 0,
+    interested: 0,
+    meetingsBooked: 0,
+    closed: 0,
+    pending: 0,
+    message: "Dashboard stats are handled client-side. This endpoint is for scripts only."
+  });
 }

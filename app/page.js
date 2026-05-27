@@ -5,6 +5,19 @@ import LeadTable from "../components/LeadTable";
 import ReplyPanel from "../components/ReplyPanel";
 import ActionPanel from "../components/ActionPanel";
 import ActivityLog from "../components/ActivityLog";
+import {
+  initializeStore,
+  getLeads,
+  getLogs,
+  getStats,
+  updateLead,
+  deleteLead,
+  auditLead,
+  sendOutreach,
+  bulkFind,
+  addManualLead,
+  resetAllData,
+} from "../lib/client-store";
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -16,24 +29,15 @@ export default function Dashboard() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    fetchData();
+    initializeStore();
+    refreshData();
+    setLoading(false);
   }, []);
 
-  async function fetchData() {
-    try {
-      const [statsRes, leadsRes, logsRes] = await Promise.all([
-        fetch("/api/stats"),
-        fetch("/api/leads"),
-        fetch("/api/logs"),
-      ]);
-      setStats(await statsRes.json());
-      setLeads(await leadsRes.json());
-      setLogs(await logsRes.json());
-    } catch (e) {
-      console.error("Failed to load data:", e);
-    } finally {
-      setLoading(false);
-    }
+  function refreshData() {
+    setLeads(getLeads());
+    setLogs(getLogs());
+    setStats(getStats());
   }
 
   function showToast(message, type = "success") {
@@ -41,33 +45,91 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  async function updateLeadStatus(id, status) {
-    await fetch("/api/leads", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    showToast(`Lead status updated to "${status}"`);
-    fetchData();
+  function handleUpdateStatus(id, status) {
+    updateLead(id, { status });
+    showToast(`Status updated to "${status}"`);
+    refreshData();
   }
 
-  async function runAction(action, data = {}) {
-    try {
-      const res = await fetch("/api/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...data }),
-      });
-      const result = await res.json();
-      if (result.error) {
-        showToast(result.error, "error");
-        return null;
-      }
-      fetchData();
-      return result;
-    } catch (e) {
-      showToast("Action failed: " + e.message, "error");
-      return null;
+  function handleDelete(id) {
+    deleteLead(id);
+    showToast("Lead deleted");
+    if (selectedLead?.id === id) setSelectedLead(null);
+    refreshData();
+  }
+
+  function handleAudit(id) {
+    const result = auditLead(id);
+    if (result.error) {
+      showToast(result.error, "error");
+    } else {
+      showToast(`Audit complete! Score: ${result.audit.score}/100`);
+    }
+    refreshData();
+  }
+
+  function handleSendOutreach(id) {
+    const result = sendOutreach(id);
+    if (result.error) {
+      showToast(result.error, "error");
+    } else {
+      showToast("Outreach sent!");
+    }
+    refreshData();
+  }
+
+  function handleBulkFind(data) {
+    const result = bulkFind(data);
+    if (result.error) {
+      showToast(result.error, "error");
+    } else {
+      showToast(`Found ${result.added} new leads!`);
+    }
+    refreshData();
+    return result;
+  }
+
+  function handleAddLead(data) {
+    const result = addManualLead(data);
+    if (result.error) {
+      showToast(result.error, "error");
+    } else {
+      showToast(`Added "${data.name}" as a new lead`);
+    }
+    refreshData();
+    return result;
+  }
+
+  function handleBulkAudit() {
+    const unaudited = getLeads().filter((l) => !l.audit && l.website);
+    let count = 0;
+    for (const lead of unaudited.slice(0, 5)) {
+      const r = auditLead(lead.id);
+      if (r.success) count++;
+    }
+    showToast(`Audited ${count} websites`);
+    refreshData();
+  }
+
+  function handleBulkOutreach() {
+    const ready = getLeads().filter(
+      (l) => l.audit && !l.outreachSent && l.email && l.status === "new"
+    );
+    let count = 0;
+    for (const lead of ready.slice(0, 5)) {
+      const r = sendOutreach(lead.id);
+      if (r.success) count++;
+    }
+    showToast(`Sent outreach to ${count} leads`);
+    refreshData();
+  }
+
+  function handleReset() {
+    if (confirm("Reset all data to demo defaults? This cannot be undone.")) {
+      resetAllData();
+      refreshData();
+      setSelectedLead(null);
+      showToast("Data reset to defaults");
     }
   }
 
@@ -92,9 +154,13 @@ export default function Dashboard() {
     <main className="max-w-7xl mx-auto px-4 py-6">
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
-          toast.type === "error" ? "bg-red-600 text-white" : "bg-green-600 text-white"
-        }`}>
+        <div
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
+            toast.type === "error"
+              ? "bg-red-600 text-white"
+              : "bg-green-600 text-white"
+          }`}
+        >
           {toast.message}
         </div>
       )}
@@ -102,15 +168,24 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">AI Outreach System</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Find leads, audit websites, send outreach, close clients</p>
+          <h1 className="text-2xl font-bold text-white">
+            AI Outreach System
+          </h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            Find leads, audit websites, send outreach, close clients
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500">
-            {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-          </span>
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-xs text-green-400">System Active</span>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleReset}
+            className="text-xs text-gray-600 hover:text-gray-400 transition"
+          >
+            Reset Demo
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-green-400">System Active</span>
+          </div>
         </div>
       </div>
 
@@ -142,29 +217,30 @@ export default function Dashboard() {
             <LeadTable
               leads={leads}
               onSelect={setSelectedLead}
-              onStatusChange={updateLeadStatus}
-              onAudit={(id) => runAction("audit_lead", { leadId: id }).then((r) => r && showToast("Audit complete!"))}
-              onSendOutreach={(id) => runAction("send_outreach", { leadId: id }).then((r) => r && showToast("Outreach sent!"))}
-              onDelete={(id) => runAction("delete_lead", { leadId: id }).then((r) => r && showToast("Lead deleted"))}
+              onStatusChange={handleUpdateStatus}
+              onAudit={handleAudit}
+              onSendOutreach={handleSendOutreach}
+              onDelete={handleDelete}
             />
           </div>
           <div className="lg:col-span-1">
-            <ReplyPanel lead={selectedLead} onRefresh={fetchData} />
+            <ReplyPanel lead={selectedLead} onRefresh={refreshData} />
           </div>
         </div>
       )}
 
       {activeTab === "actions" && (
         <ActionPanel
-          onAction={runAction}
-          showToast={showToast}
           leads={leads}
+          onBulkFind={handleBulkFind}
+          onAddLead={handleAddLead}
+          onBulkAudit={handleBulkAudit}
+          onBulkOutreach={handleBulkOutreach}
+          showToast={showToast}
         />
       )}
 
-      {activeTab === "activity" && (
-        <ActivityLog logs={logs} />
-      )}
+      {activeTab === "activity" && <ActivityLog logs={logs} />}
     </main>
   );
 }
