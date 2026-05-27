@@ -1,0 +1,11 @@
+[
+  {
+    "leadId": "lead-001",
+    "leadName": "Sunrise Dental Clinic",
+    "email": "info@sunrisedental.example.com",
+    "outreachDate": "2026-05-21",
+    "followupCount": 1,
+    "lastFollowup": "2026-05-23",
+    "nextFollowup": "2026-05-26"
+  }
+]

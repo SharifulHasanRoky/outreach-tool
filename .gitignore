@@ -19,7 +19,7 @@ npm-debug.log*
 .DS_Store
 *.pem
 
-# data
-data/leads.json
-data/outreach-log.json
-data/followup-queue.json
+# data (uncomment to keep data private)
+# data/leads.json
+# data/outreach-log.json
+# data/followup-queue.json

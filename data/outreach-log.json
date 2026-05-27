@@ -1,0 +1,72 @@
+[
+  {
+    "id": "out-001",
+    "leadId": "lead-001",
+    "leadName": "Sunrise Dental Clinic",
+    "email": "info@sunrisedental.example.com",
+    "subject": "Quick idea for Sunrise Dental",
+    "status": "sent",
+    "sentAt": "2026-05-21T09:15:00.000Z",
+    "followupNumber": 0
+  },
+  {
+    "id": "out-002",
+    "leadId": "lead-002",
+    "leadName": "Fresh Bites Restaurant",
+    "email": "hello@freshbites.example.com",
+    "subject": "Thought about Fresh Bites online presence",
+    "status": "sent",
+    "sentAt": "2026-05-19T10:30:00.000Z",
+    "followupNumber": 0
+  },
+  {
+    "id": "out-003",
+    "leadId": "lead-003",
+    "leadName": "PowerFit Gym",
+    "email": "contact@powerfitgym.example.com",
+    "subject": "Quick win for PowerFit Gym website",
+    "status": "sent",
+    "sentAt": "2026-05-16T08:45:00.000Z",
+    "followupNumber": 0
+  },
+  {
+    "id": "out-004",
+    "leadId": "lead-004",
+    "leadName": "Elite Auto Detailing",
+    "email": "book@eliteauto.example.com",
+    "subject": "Idea to get more bookings for Elite Auto",
+    "status": "sent",
+    "sentAt": "2026-05-11T11:00:00.000Z",
+    "followupNumber": 0
+  },
+  {
+    "id": "out-005",
+    "leadId": "lead-007",
+    "leadName": "Cozy Cafe & Bakery",
+    "email": "hi@cozycafe.example.com",
+    "subject": "Quick thought about Cozy Cafe website",
+    "status": "sent",
+    "sentAt": "2026-05-06T14:00:00.000Z",
+    "followupNumber": 0
+  },
+  {
+    "id": "out-006",
+    "leadId": "lead-008",
+    "leadName": "LegalEdge Law Firm",
+    "email": "consult@legaledge.example.com",
+    "subject": "Idea for LegalEdge online leads",
+    "status": "sent",
+    "sentAt": "2026-05-09T09:00:00.000Z",
+    "followupNumber": 0
+  },
+  {
+    "id": "out-007",
+    "leadId": "lead-001",
+    "leadName": "Sunrise Dental Clinic",
+    "email": "info@sunrisedental.example.com",
+    "subject": "Re: Quick idea for Sunrise Dental",
+    "status": "sent",
+    "sentAt": "2026-05-23T09:00:00.000Z",
+    "followupNumber": 1
+  }
+]

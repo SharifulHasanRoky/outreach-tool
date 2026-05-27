@@ -12,6 +12,7 @@
     "lead:outreach": "node scripts/send-outreach.js",
     "lead:followup": "node scripts/follow-up.js",
     "lead:daily": "node scripts/daily-pipeline.js",
+    "setup": "node scripts/setup.js",
     "lint": "next lint"
   },
   "dependencies": {
